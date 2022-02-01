@@ -74,3 +74,9 @@ To run unit tests
 ```
 python main.py test
 ```
+
+TODO
+
+- [x] Quickstart
+- [ ] Saving and loading models
+- [ ] Network architectures
