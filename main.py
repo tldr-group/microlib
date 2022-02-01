@@ -35,7 +35,7 @@ def main(mode, offline, tag):
 
     elif mode == 'test':
         print('Performing unit tests')
-        pt = pytest.main(["-x", "crystalgan/test.py"])
+        pt = pytest.main(["-x", "src/test.py"])
 
     else:
         raise ValueError("Mode not recognised")

@@ -33,6 +33,7 @@ Prerequisites:
 - python3
 
 Create a new conda environment, activate and install pytorch
+
 _Note: cudatoolkit version and pytorch install depends on system, see [PyTorch install](https://pytorch.org/get-started/locally/) for more info._
 
 ```
@@ -66,4 +67,10 @@ To generate samples from a trained generator
 
 ```
 python main.py generate -t test-run
+```
+
+To run unit tests
+
+```
+python main.py test
 ```
