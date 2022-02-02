@@ -7,9 +7,10 @@ class Config():
     def __init__(self, tag):
         self.tag = tag
         self.path = f'runs/{self.tag}'
+        self.data_path = 'data/Example_ppp.png'
         self.net_type = 'gan'
-        self.imsize = 64
-        self.channels = 3
+        self.l = 64
+        self.n_phases = 2
         # Training hyperparams
         self.batch_size = 64
         self.beta1 = 0.9
@@ -20,23 +21,23 @@ class Config():
         self.lr = 0.0001
         self.Lambda = 10
         self.critic_iters = 10
-        self.lz = 10
-        self.ngpu = 2
-        if self.ngpu > 1:
+        self.lz = 4
+        self.ngpu = 1
+        if self.ngpu > 0:
             self.device_name = "cuda:0"
         else:
             self.device_name = 'cpu'
         self.nz = 100
         # Architecture
-        self.lays = 7
-        self.laysd = 6
+        self.lays = 4
+        self.laysd = 5
         # kernel sizes
         self.dk, self.gk = [4]*self.laysd, [4]*self.lays
         self.ds, self.gs = [2]*self.laysd, [2]*self.lays
-        self.df, self.gf = [self.channels, 4, 16, 32, 64, 128, 1], [
-            self.nz, 256, 128, 64, 32, 16, 8, self.channels]
-        self.dp = [1, 1, 1, 1, 1, 0]
-        self.gp = [1, 1, 1, 1, 1, 1, 1]
+        self.df, self.gf = [self.n_phases, 64, 128, 256, 512, 1], [
+            self.nz, 512, 256, 128, self.n_phases]
+        self.dp = [1, 1, 1, 1, 0]
+        self.gp = [1, 1, 1, 1, 1]
 
     def save(self):
         j = {}
@@ -55,11 +56,6 @@ class Config():
         return self.dk, self.ds, self.df, self.dp, self.gk, self.gs, self.gf, self.gp
     
     def get_train_params(self):
-        return self.l, self.nc, self.batch_size, self.beta1, self.beta2, self.num_epochs, self.iters, self.lrg, self.lr, self.Lambda, self.critic_iters, self.lz, self.nz
+        return self.l, self.batch_size, self.beta1, self.beta2, self.num_epochs, self.iters, self.lrg, self.lr, self.Lambda, self.critic_iters, self.lz, self.nz
 
 
-C = Config()
-C.save()
-C.load()
-
-print([x for x in C.__dict__.items()])

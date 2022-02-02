@@ -1,5 +1,4 @@
 import numpy as np
-import numpy as np
 import torch
 from torch import autograd
 import wandb
@@ -8,9 +7,11 @@ import os
 import subprocess
 import shutil
 import logging
-from postprocessing import post_process
+import matplotlib.pyplot as plt
+from torch import nn
+import tifffile
 
-
+# set-up util
 def initialise_folders(tag):
     """[summary]
 
@@ -25,7 +26,6 @@ def initialise_folders(tag):
         os.mkdir(f'runs/{tag}')
     except:
         pass
-
 
 def wandb_init(name, offline):
     """[summary]
@@ -66,7 +66,6 @@ def wandb_init(name, offline):
     # wandb.config.seed = wandb_config['seed']
     wandb.config.log_interval = wandb_config['log_interval']
 
-
 def wandb_save_models(pth, fn):
     """[summary]
 
@@ -78,6 +77,24 @@ def wandb_save_models(pth, fn):
     shutil.copy(pth+fn, os.path.join(wandb.run.dir, fn))
     wandb.save(fn)
 
+# training util
+def preprocess(data_path):
+    """[summary]
+
+    :param imgs: [description]
+    :type imgs: [type]
+    :return: [description]
+    :rtype: [type]
+    """
+    img = plt.imread(data_path)[:, :, 0]
+    phases = np.unique(img)
+    if len(phases) > 10:
+        raise AssertionError('Image not one hot encoded.')
+    x, y = img.shape
+    img_oh = torch.zeros(len(phases), x, y)
+    for i, ph in enumerate(phases):
+        img_oh[i][img == ph] = 1
+    return img_oh, len(phases)
 
 def calc_gradient_penalty(netD, real_data, fake_data, batch_size, l, device, gp_lambda, nc):
     """[summary]
@@ -104,7 +121,7 @@ def calc_gradient_penalty(netD, real_data, fake_data, batch_size, l, device, gp_
     alpha = torch.rand(batch_size, 1)
     alpha = alpha.expand(batch_size, int(
         real_data.nelement() / batch_size)).contiguous()
-    alpha = alpha.view(batch_size, nc, l)
+    alpha = alpha.view(batch_size, nc, l, l)
     alpha = alpha.to(device)
 
     interpolates = alpha * real_data.detach() + ((1 - alpha) * fake_data.detach())
@@ -120,15 +137,62 @@ def calc_gradient_penalty(netD, real_data, fake_data, batch_size, l, device, gp_
     gradient_penalty = ((gradients.norm(2, dim=1) - 1) ** 2).mean() * gp_lambda
     return gradient_penalty
 
-def batch_real(training_imgs):
+def batch_real(img, l, bs):
     """[summary]
-
     :param training_imgs: [description]
     :type training_imgs: [type]
     :return: [description]
     :rtype: [type]
     """
-    return training_imgs
+    n_ph, x_max, y_max = img.shape
+    data = torch.zeros((bs, n_ph, l, l))
+    for i in range(bs):
+        x, y = torch.randint(x_max - l, (1,)), torch.randint(y_max - l, (1,))
+        data[i] = img[:, x:x+l, y:y+l]
+    return data
+
+# Evaluation util
+def post_process(img):
+    """Turns a n phase image (bs, n, imsize, imsize) into a plottable euler image (bs, 3, imsize, imsize, imsize)
+
+    :param img: a tensor of the n phase img
+    :type img: torch.Tensor
+    :return:
+    :rtype:
+    """
+    img = img.detach().cpu()
+    img = torch.argmax(img, dim=1).unsqueeze(-1).numpy()
+
+    return img * 255
+
+def generate(c, netG):
+    """Generate an instance from generator, save to .tif
+
+    :param c: Config object class
+    :type c: Config
+    :param netG: Generator instance
+    :type netG: Generator
+    :return: Post-processed generated instance
+    :rtype: torch.Tensor
+    """
+    tag, ngpu, nz, lf, pth = c.tag, c.ngpu, c.nz, c.lf, c.path
+
+
+    out_pth = f"runs/{tag}/out.tif"
+    if torch.cuda.device_count() > 1 and c.ngpu > 1:
+        print("Using", torch.cuda.device_count(), "GPUs!")
+    device = torch.device("cuda:0" if(
+            torch.cuda.is_available() and ngpu > 0) else "cpu")
+    if (ngpu > 1):
+        netG = nn.DataParallel(netG, list(range(ngpu))).to(device)
+    netG.load_state_dict(torch.load(f"{pth}/nets/Gen.pt"))
+    netG.eval()
+    noise = torch.randn(1, nz, lf, lf, lf)
+    raw = netG(noise)
+    gb = post_process(raw)
+    tif = np.array(gb[0], dtype=np.uint8)
+    tifffile.imwrite(out_pth, tif, imagej=True)
+    return tif
 
 def progress(i, iters, n, num_epochs, timed):
     """[summary]
@@ -146,7 +210,7 @@ def progress(i, iters, n, num_epochs, timed):
     """
     progress = 'iteration {} of {}, epoch {} of {}'.format(
         i, iters, n, num_epochs)
-    logging.warning({"Progress": progress, "Time per iter": timed})
+    logging.info({"Progress": progress, "Time per iter": timed})
 
 def plot_img(img, slcs=4):
     """[summary]
@@ -157,8 +221,4 @@ def plot_img(img, slcs=4):
     :type slcs: int, optional
     """
     img = post_process(img)
-    images = []
-    for j in range(slcs):
-        j = np.random.randint(0, img.shape[0])
-        images.append(img[j])
-    wandb.log({"slices": [wandb.Image(i) for i in images]})
+    wandb.log({"slices": [wandb.Image(i) for i in img]})

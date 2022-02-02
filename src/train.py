@@ -30,10 +30,10 @@ def train(c, Gen, Disc, offline=True):
     cudnn.benchmark = True
 
     # Get train params
-    l, nc, batch_size, beta1, beta2, num_epochs, iters, lrg, lr, Lambda, critic_iters, lz, nz, = c.get_train_params()
+    l, batch_size, beta1, beta2, num_epochs, iters, lrg, lr, Lambda, critic_iters, lz, nz, = c.get_train_params()
 
     # TODO read in data
-    training_imgs = torch.Tensor(tifffile.imread()).to(device)
+    training_imgs, nc = preprocess(c.data_path)
 
     # Define Generator network
     netG = Gen().to(device)
@@ -63,13 +63,13 @@ def train(c, Gen, Disc, offline=True):
             noise = torch.randn(batch_size, nz, lz, lz, device=device)
             fake_data = netG(noise).detach()
 
-            real_data = batch_real(training_imgs)
+            real_data = batch_real(training_imgs, l, batch_size).to(device)
 
             # Train on real
             out_real = netD(real_data).mean()
             # train on fake images
             out_fake = netD(fake_data).mean()
-            gradient_penalty = calc_gradient_penalty(netD, real_data, fake_data, l, device, Lambda, nc)
+            gradient_penalty = calc_gradient_penalty(netD, real_data, fake_data, batch_size, l, device, Lambda, nc)
 
             # Compute the discriminator loss and backprop
             disc_cost = out_fake - out_real + gradient_penalty
@@ -78,10 +78,11 @@ def train(c, Gen, Disc, offline=True):
             optD.step()
 
             # Log results
-            wandb.log({'Gradient penalty': gradient_penalty.item()})
-            wandb.log({'Wass': out_real.item() - out_fake.item()})
-            wandb.log({'Discriminator real': out_real.item()})
-            wandb.log({'Discriminator fake': out_fake.item()})
+            if not offline:
+                wandb.log({'Gradient penalty': gradient_penalty.item()})
+                wandb.log({'Wass': out_real.item() - out_fake.item()})
+                wandb.log({'Discriminator real': out_real.item()})
+                wandb.log({'Discriminator fake': out_fake.item()})
 
             # Generator training
             if i % int(critic_iters) == 0:
@@ -104,13 +105,14 @@ def train(c, Gen, Disc, offline=True):
                 with torch.no_grad():
                     torch.save(netG.state_dict(), f'{path}/Gen.pt')
                     torch.save(netD.state_dict(), f'{path}/Disc.pt')
-                    wandb_save_models(f'{path}/Disc.pt')
-                    wandb_save_models(f'{path}/Gen.pt')
-                    noise = torch.randn(1, nz, lz, lz, device=device)
-                    img = netG(noise).detach()
-                    plot_img(img)
-                    progress(i, iters, epoch, num_epochs,
-                             timed=np.mean(times), wandb_name=tag)
+                    if not offline:
+                        # wandb_save_models(f'{path}/Disc.pt')
+                        # wandb_save_models(f'{path}/Gen.pt')
+                        noise = torch.randn(3, nz, lz, lz, device=device)
+                        img = netG(noise).detach()
+                        plot_img(img)
+                        progress(i, iters, epoch, num_epochs,
+                                 timed=np.mean(times))
                     times = []
 
 
