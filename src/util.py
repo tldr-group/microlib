@@ -6,26 +6,55 @@ from dotenv import load_dotenv
 import os
 import subprocess
 import shutil
-import logging
 import matplotlib.pyplot as plt
 from torch import nn
 import tifffile
 
+# check for existing models and folders
+def check_existence(tag):
+    """Checks if model exists, then asks for user input. Returns True for overwrite, False for load.
+
+    :param tag: [description]
+    :type tag: [type]
+    :raises SystemExit: [description]
+    :raises AssertionError: [description]
+    :return: True for overwrite, False for load
+    :rtype: [type]
+    """
+    root = f'runs/{tag}'
+    check_D = os.path.exists(f'{root}/Disc.pt')
+    check_G = os.path.exists(f'{root}/Gen.pt')
+    if check_G or check_D:
+        print(f'Models already exist for tag {tag}.')
+        x = input("To overwrite existing model enter 'o', to load existing model enter 'l' or to cancel enter 'c'.")
+        if x=='o':
+            print("Overwriting")
+            return True
+        if x=='l':
+            print("Loading previous model")
+            return False
+        elif x=='c':
+            raise SystemExit
+        else:
+            raise AssertionError("Incorrect argument entered.")
+
+
 # set-up util
-def initialise_folders(tag):
+def initialise_folders(tag, overwrite):
     """[summary]
 
     :param tag: [description]
     :type tag: [type]
     """
-    try:
-        os.mkdir(f'runs')
-    except:
-        pass
-    try:
-        os.mkdir(f'runs/{tag}')
-    except:
-        pass
+    if overwrite:
+        try:
+            os.mkdir(f'runs')
+        except:
+            pass
+        try:
+            os.mkdir(f'runs/{tag}')
+        except:
+            pass
 
 def wandb_init(name, offline):
     """[summary]
@@ -41,12 +70,15 @@ def wandb_init(name, offline):
         mode = None
     load_dotenv(os.path.join(os.getcwd(), '.env'))
     API_KEY = os.getenv('WANDB_API_KEY')
+    ENTITY = os.getenv('WANDB_ENTITY')
+    PROJECT = os.getenv('WANDB_PROJECT')
+    if API_KEY is None or ENTITY is None or PROJECT is None:
+        raise AssertionError('.env file arguments missing. Make sure WANDB_API_KEY, WANDB_ENTITY and WANDB_PROJECT are present.')
     print("Logging into W and B using API key {}".format(API_KEY))
     process = subprocess.run(["wandb", "login", API_KEY], capture_output=True)
     print("stderr:", process.stderr)
 
-    ENTITY = os.getenv('WANDB_ENTITY')
-    PROJECT = os.getenv('WANDB_PROJECT')
+    
     print('initing')
     wandb.init(entity=ENTITY, name=name, project=PROJECT, mode=mode)
 
@@ -66,15 +98,15 @@ def wandb_init(name, offline):
     # wandb.config.seed = wandb_config['seed']
     wandb.config.log_interval = wandb_config['log_interval']
 
-def wandb_save_models(pth, fn):
+def wandb_save_models(fn):
     """[summary]
 
     :param pth: [description]
     :type pth: [type]
     :param fn: [description]
-    :type fn: function
+    :type fn: filename
     """
-    shutil.copy(pth+fn, os.path.join(wandb.run.dir, fn))
+    shutil.copy(fn, os.path.join(wandb.run.dir, fn))
     wandb.save(fn)
 
 # training util
@@ -210,9 +242,9 @@ def progress(i, iters, n, num_epochs, timed):
     """
     progress = 'iteration {} of {}, epoch {} of {}'.format(
         i, iters, n, num_epochs)
-    logging.info({"Progress": progress, "Time per iter": timed})
+    print(f"Progress: {progress}, Time per iter: {timed}")
 
-def plot_img(img, slcs=4):
+def plot_img(img, iter, epoch, path, offline=True):
     """[summary]
 
     :param img: [description]
@@ -221,4 +253,10 @@ def plot_img(img, slcs=4):
     :type slcs: int, optional
     """
     img = post_process(img)
-    wandb.log({"slices": [wandb.Image(i) for i in img]})
+    if not offline:
+        wandb.log({"slices": [wandb.Image(i) for i in img]})
+    else:
+        fig, axs = plt.subplots(1, img.shape[0])
+        for ax, im in zip(axs, img):
+            ax.imshow(im)
+        plt.savefig(f'{path}/{epoch}_{iter}_slices.png')

@@ -5,6 +5,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import tifffile
+import time
 
 def train(c, Gen, Disc, offline=True):
     """[summary]
@@ -32,7 +33,7 @@ def train(c, Gen, Disc, offline=True):
     # Get train params
     l, batch_size, beta1, beta2, num_epochs, iters, lrg, lr, Lambda, critic_iters, lz, nz, = c.get_train_params()
 
-    # TODO read in data
+    # Read in data
     training_imgs, nc = preprocess(c.data_path)
 
     # Define Generator network
@@ -44,19 +45,20 @@ def train(c, Gen, Disc, offline=True):
     optD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, beta2))
     optG = optim.Adam(netG.parameters(), lr=lrg, betas=(beta1, beta2))
 
-    if not offline:
-        wandb_init(tag, offline)
-        wandb.watch(netD, log='all', log_freq=100)
-        wandb.watch(netG, log='all', log_freq=100)
+    wandb_init(tag, offline)
+    wandb.watch(netD, log='all', log_freq=100)
+    wandb.watch(netG, log='all', log_freq=100)
 
     for epoch in range(num_epochs):
         times = []
         for i in range(iters):
             # Discriminator Training
-
-            start_overall = torch.cuda.Event(enable_timing=True)
-            end_overall = torch.cuda.Event(enable_timing=True)
-            start_overall.record()
+            if ('cuda' in str(device)) and (ngpu > 1):
+                start_overall = torch.cuda.Event(enable_timing=True)
+                end_overall = torch.cuda.Event(enable_timing=True)
+                start_overall.record()
+            else:
+                start_overall = time.time()
 
             netD.zero_grad()
 
@@ -96,24 +98,29 @@ def train(c, Gen, Disc, offline=True):
                 output.backward()
                 optG.step()
 
-            end_overall.record()
-            torch.cuda.synchronize()
-            times.append(start_overall.elapsed_time(end_overall))
+            if ('cuda' in str(device)) and (ngpu > 1):
+                end_overall.record()
+                torch.cuda.synchronize()
+                times.append(start_overall.elapsed_time(end_overall))
+            else:
+                end_overall = time.time()
+                times.append(end_overall-start_overall)
+
 
             # Every 50 iters log images and useful metrics
             if i % 50 == 0:
                 with torch.no_grad():
                     torch.save(netG.state_dict(), f'{path}/Gen.pt')
                     torch.save(netD.state_dict(), f'{path}/Disc.pt')
-                    if not offline:
-                        # wandb_save_models(f'{path}/Disc.pt')
-                        # wandb_save_models(f'{path}/Gen.pt')
-                        noise = torch.randn(3, nz, lz, lz, device=device)
-                        img = netG(noise).detach()
-                        plot_img(img)
-                        progress(i, iters, epoch, num_epochs,
-                                 timed=np.mean(times))
+                    # wandb_save_models(f'{path}/Disc.pt')
+                    # wandb_save_models(f'{path}/Gen.pt')
+                    noise = torch.randn(3, nz, lz, lz, device=device)
+                    img = netG(noise).detach()
+                    plot_img(img, i, epoch, path, offline)
+                    progress(i, iters, epoch, num_epochs,
+                                timed=np.mean(times))
+                        
                     times = []
 
 
-    logging.info({"TRAINING FINISHED"})
+    print("TRAINING FINISHED")

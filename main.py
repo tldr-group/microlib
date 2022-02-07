@@ -19,13 +19,14 @@ def main(mode, offline, tag):
     :raises ValueError: [description]
     """
     print("Running in {} mode, tagged {}, offline {}".format(mode, tag, offline))
-    util.initialise_folders(tag)
+    overwrite = util.check_existence(tag)
+    util.initialise_folders(tag, overwrite)
 
     # Initialise Config object
     c = Config(tag)
 
     if mode == 'train':
-        netD, netG = networks.make_nets(c)
+        netD, netG = networks.make_nets(c, overwrite)
         train(c, netG, netD, offline=offline)
 
     elif mode == 'generate':

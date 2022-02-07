@@ -39,7 +39,7 @@ _Note: cudatoolkit version and pytorch install depends on system, see [PyTorch i
 ```
 conda create --name gan-boilerplate
 conda activate gan-boilerplate
-conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+conda install pytorch torchvision -c pytorch
 conda install -r requirements.txt
 ```
 

@@ -1,0 +1,6 @@
+matplotlib==3.4.3
+pandas==1.2.3
+tifffile==2022.2.2
+python-dotenv==0.19.2
+wandb==0.12.10
+pytest==7.0.0
