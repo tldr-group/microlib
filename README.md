@@ -75,9 +75,34 @@ To run unit tests
 python main.py test
 ```
 
+## Saving, loading and overwriting models
+
+Models are saved to runs folder which is generated when training initiates. Inside runs, a new folder with the name of your training run tag will be generated, inside this the model params and training outputs are saved. This includes:
+
+- **config.json** - this json holds the config paramaters of your training run, see config.py for more info
+- **Gen.pt** - this holds the generator training parameters
+- **Disc.pt** - this holds the discriminator parameters
+
+### Training
+
+If training for the first time, these files are created and updated during training.
+
+If you initiate a training run with a tag of a run that already exists you will see the prompt
+
+```
+To overwrite existing model enter 'o', to load existing model enter 'l' or to cancel enter 'c'.
+```
+
+By entering `'o'` you will overwrite the existing models, deleting their saved parameters and config. `l` will load the existing model params and config, and continue training this model. `c` will abort the training run.
+
+### Evaluation
+
+When evaluating a trained model, the params and model config are loaded from files. Models are saved with their training tag, use this tag to evaluate specific models.
+
 ## TODO
 
 - [x] Quickstart
-- [ ] Saving and loading models
+- [x] Saving and loading models
 - [ ] Training outputs
 - [ ] Network architectures
+- [ ] wandb
