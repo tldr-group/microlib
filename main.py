@@ -19,18 +19,18 @@ def main(mode, offline, tag):
     :raises ValueError: [description]
     """
     print("Running in {} mode, tagged {}, offline {}".format(mode, tag, offline))
-    overwrite = util.check_existence(tag)
-    util.initialise_folders(tag, overwrite)
 
     # Initialise Config object
     c = Config(tag)
 
     if mode == 'train':
+        overwrite = util.check_existence(tag)
+        util.initialise_folders(tag, overwrite)
         netD, netG = networks.make_nets(c, overwrite)
         train(c, netG, netD, offline=offline, overwrite=overwrite)
 
     elif mode == 'generate':
-        netD, netG = networks.make_nets(c, Training=0)
+        netD, netG = networks.make_nets(c, training=0)
         net_g = netG()
         util.generate(c, net_g)
         print("Img generated")

@@ -220,7 +220,7 @@ def generate(c, netG):
         netG = nn.DataParallel(netG, list(range(ngpu))).to(device)
     netG.load_state_dict(torch.load(f"{pth}/Gen.pt"))
     netG.eval()
-    noise = torch.randn(1, nz, lf, lf, lf)
+    noise = torch.randn(1, nz, lf, lf)
     raw = netG(noise)
     gb = post_process(raw)
     tif = np.array(gb[0], dtype=np.uint8)
