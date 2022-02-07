@@ -27,7 +27,7 @@ def main(mode, offline, tag):
 
     if mode == 'train':
         netD, netG = networks.make_nets(c, overwrite)
-        train(c, netG, netD, offline=offline)
+        train(c, netG, netD, offline=offline, overwrite=overwrite)
 
     elif mode == 'generate':
         netD, netG = networks.make_nets(c, Training=0)

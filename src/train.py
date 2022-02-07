@@ -7,7 +7,7 @@ import torch.nn as nn
 import tifffile
 import time
 
-def train(c, Gen, Disc, offline=True):
+def train(c, Gen, Disc, offline=True, overwrite=True):
     """[summary]
 
     :param c: [description]
@@ -44,6 +44,10 @@ def train(c, Gen, Disc, offline=True):
         netG = nn.DataParallel(netG, list(range(ngpu))).to(device)
     optD = optim.Adam(netD.parameters(), lr=lr, betas=(beta1, beta2))
     optG = optim.Adam(netG.parameters(), lr=lrg, betas=(beta1, beta2))
+
+    if not overwrite:
+        netG.load_state_dict(torch.load(f"{path}/Gen.pt"))
+        netD.load_state_dict(torch.load(f"{path}/Disc.pt"))
 
     wandb_init(tag, offline)
     wandb.watch(netD, log='all', log_freq=100)

@@ -37,6 +37,7 @@ def check_existence(tag):
             raise SystemExit
         else:
             raise AssertionError("Incorrect argument entered.")
+    return True
 
 
 # set-up util
@@ -217,7 +218,7 @@ def generate(c, netG):
             torch.cuda.is_available() and ngpu > 0) else "cpu")
     if (ngpu > 1):
         netG = nn.DataParallel(netG, list(range(ngpu))).to(device)
-    netG.load_state_dict(torch.load(f"{pth}/nets/Gen.pt"))
+    netG.load_state_dict(torch.load(f"{pth}/Gen.pt"))
     netG.eval()
     noise = torch.randn(1, nz, lf, lf, lf)
     raw = netG(noise)
