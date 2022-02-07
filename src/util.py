@@ -26,7 +26,7 @@ def check_existence(tag):
     check_G = os.path.exists(f'{root}/Gen.pt')
     if check_G or check_D:
         print(f'Models already exist for tag {tag}.')
-        x = input("To overwrite existing model enter 'o', to load existing model enter 'l' or to cancel enter 'c'.")
+        x = input("To overwrite existing model enter 'o', to load existing model enter 'l' or to cancel enter 'c'.\n")
         if x=='o':
             print("Overwriting")
             return True
