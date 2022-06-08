@@ -3,5 +3,3 @@ venv
 .env
 runs
 wandb
-data/micro*
-xstitch.py

@@ -1,7 +1,10 @@
 import argparse
 import os
-from src.preprocessing import import_data, bar_box_gui
-from src.inpainting import inpaint_scalebars
+import tifffile
+import pytest
+from src import train, networks, util
+from config import Config
+import os
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
 def main(mode, offline, tag):
@@ -18,16 +21,24 @@ def main(mode, offline, tag):
     print("Running in {} mode, tagged {}, offline {}".format(mode, tag, offline))
 
     # Initialise Config object
- 
+    c = Config(tag)
 
-    if mode == 'import':
-        import_data.import_data()
-    elif mode == 'preprocess':
-        bar_box_gui.preprocess_gui()
-    elif mode == 'inpaint':
-        inpaint_scalebars.inpaint_samples('train')
+    if mode == 'train':
+        overwrite = util.check_existence(tag)
+        util.initialise_folders(tag, overwrite)
+        netD, netG = networks.make_nets(c, overwrite)
+        train(c, netG, netD, offline=offline, overwrite=overwrite)
+
     elif mode == 'generate':
-        inpaint_scalebars.inpaint_samples('generate')
+        netD, netG = networks.make_nets(c, training=0)
+        net_g = netG()
+        util.generate(c, net_g)
+        print("Img generated")
+
+    elif mode == 'test':
+        print('Performing unit tests')
+        pt = pytest.main(["-x", "src/test.py"])
+
     else:
         raise ValueError("Mode not recognised")
 
