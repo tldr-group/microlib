@@ -1,43 +1,31 @@
 import argparse
 import os
-import tifffile
-import pytest
-from src import train, networks, util
-from config import Config
-import os
+from src.preprocessing import import_data, annotation_gui
+from src.inpainting import run_inpaint
+from src.slicegan import run_slicegan, animations
 os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
 
-def main(mode, offline, tag):
+def main(mode):
     """[summary]
 
-    :param mode: [description]
-    :type mode: [type]
-    :param offline: [description]
-    :type offline: [type]
-    :param tag: [description]
-    :type tag: [type]
-    :raises ValueError: [description]
+    :param mode: [mode to run in]
+    :type mode: [str]
+
     """
-    print("Running in {} mode, tagged {}, offline {}".format(mode, tag, offline))
 
     # Initialise Config object
-    c = Config(tag)
+ 
 
-    if mode == 'train':
-        overwrite = util.check_existence(tag)
-        util.initialise_folders(tag, overwrite)
-        netD, netG = networks.make_nets(c, overwrite)
-        train(c, netG, netD, offline=offline, overwrite=overwrite)
-
-    elif mode == 'generate':
-        netD, netG = networks.make_nets(c, training=0)
-        net_g = netG()
-        util.generate(c, net_g)
-        print("Img generated")
-
-    elif mode == 'test':
-        print('Performing unit tests')
-        pt = pytest.main(["-x", "src/test.py"])
+    if mode == 'import':
+        import_data()
+    elif mode == 'preprocess':
+        annotation_gui.preprocess_gui()
+    elif mode == 'inpaint':
+        run_inpaint.inpaint_dataset('train')
+    elif mode =='slicegan':
+        run_slicegan.slicegan_dataset()
+    elif mode == 'animate':
+        animations.animate_dataset()
 
     else:
         raise ValueError("Mode not recognised")
@@ -46,14 +34,6 @@ def main(mode, offline, tag):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("mode")
-    parser.add_argument("-t", "--tag")
-    parser.add_argument('-o', '--offline', action='store_true',
-                        help='disable wandb')
     args = parser.parse_args()
-    if args.tag:
-        tag = args.tag
-    else:
-        tag = 'test'
-
-    main(args.mode, args.offline, tag)
+    main(args.mode)
 # main('train', False, 'test')

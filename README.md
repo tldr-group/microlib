@@ -1,21 +1,37 @@
-# GAN-boilerplate
+# microlib dataset generation repo
 
-A boilerplate repo for GAN projects. Fork the repo when adapting for your own projects.
-
-This repo is geared towards GANs for material microstructure projects, where the generator learned to output a homogeneous image. However, it can be easily adapted to any GAN project.
+A repo for generating the dataset associated with microlib.io
 
 ## Folder structure
 
 ```
-GAN-boilerplate
+microlib
  ┣ src
- ┃ ┣ __init__.py
- ┃ ┣ networks.py
- ┃ ┣ postprocessing.py
- ┃ ┣ preprocessing.py
- ┃ ┣ test.py
- ┃ ┣ train.py
- ┃ ┗ util.py
+ ┃ ┣ preprocessing
+ ┃ ┃ ┣ __init__.py
+ ┃ ┃ ┣ annotations.gui.py
+ ┃ ┃ ┣ inpaint_scalebars.py
+ ┃ ┃ ┣ inpaint.py
+ ┃ ┃ ┣ networks.py
+ ┃ ┃ ┣ util.py
+ ┃ ┣ inpainting
+ ┃ ┃ ┣ __init__.py
+ ┃ ┃ ┣ config.py
+ ┃ ┃ ┣ inpaint_scalebars.py
+ ┃ ┃ ┣ inpaint.py
+ ┃ ┃ ┣ networks.py
+ ┃ ┃ ┣ util.py
+ ┃ ┣ slicegan
+ ┃ ┃ ┣ __init__.py
+ ┃ ┃ ┣ model.py
+ ┃ ┃ ┣ network.py
+ ┃ ┃ ┣ preprocessing.py
+ ┃ ┃ ┣ run_slicegan.py
+ ┃ ┃ ┣ util.py
+ ┃ ┣ postprocessing
+ ┃ ┃ ┣ __init__.py
+ ┃ ┃ ┣ figures.ipynb
+ ┃ ┃ ┣ mergegifs.py
  ┣ data
  ┃ ┗ example.png
  ┣ .gitignore
@@ -39,72 +55,53 @@ Create a new conda environment, activate and install pytorch
 _Note: cudatoolkit version and pytorch install depends on system, see [PyTorch install](https://pytorch.org/get-started/locally/) for more info._
 
 ```
-conda create --name gan-boilerplate
-conda activate gan-boilerplate
+conda create --name microlib
+conda activate microlib
 conda install pytorch torchvision -c pytorch
 conda install -r requirements.txt
 ```
 
-Create a .env file to hold secrets, the .env file must include
+You are now ready to run the repo. We will download images, annotate them, perform inpainting, run slicegan and finally generate some animations.
+
+First, to download images run in import mode. This will create a series of requests to doitpoms. If you get cert errors, go to src/preprocessing/import_data.py and add verify=False to line 18 *at your own risk*.
 
 ```
-WANDB_API_KEY=
-WANDB_ENTITY=
-WANDB_PROJECT=
+python main.py import
 ```
 
-You are now ready to run the repo. To start training
+Next, annotate the images by running in preprocess mode. You can skip this step and use our annotations by renaming data/prelabelled_anns.json to data/anns.json. If you quit the gui and rerun, you will automatically continue from where you left off - to restart, just delete anns.json.
+
+The following are the controls at different stages of the annotation GUI. At any time, press C to restart the current microstructure, or W to remove the current microstructure if it doesn't fit the exclusion criteria'. The stage you are on is shown at the top of the gui
+
+
+1)'scale bar col: click on the scale bar then use A and S keys to adjust thresholds, or press enter to skip', 
+2)'scale bar box: click on the top left then bottom right corners of the reqion containing the scale bar, or press enter to skip. You should not skip this if you have selected a scale bar col', 
+3)'crop region: click on the top left then bottom right corner to define the region you want to keep. Click a third time to reset. Press enter to skip',  
+4)'Click on the different phases to segment. Use A and S to adjust threshold. Press enter to skip and select grayscale',
+5)'voxel size: click on the left of the scalebar, then the right, then enter scale bar size in microns',
+
 
 ```
-python main.py train -t test-run
+python main.py preprocess
 ```
 
-This will track your run online with Weights and Biases and name your training run `test-run`. To run in offline mode
+Now run in inpaint mode. This creates a repo called final_images with all the inpainted images ready for slicegan, as well as any images that didn't need inpainting
 
 ```
-python main.py train -t test-run -o
+python main.py inpaint
 ```
 
-To generate samples from a trained generator
+Now run in slicegan mode to train a 3D generator. This creates the data/slicegan_runs folder and a subfolder for each run that will contain the generator and discriminator, params, and the animations and 3D volumes generated in the next step.
 
 ```
-python main.py generate -t test-run
+python main.py slicegan
 ```
 
-To run unit tests
+Finally, run in animate mode to generate a 3D volume and animate it slice by slice and rotating. Note that th
 
 ```
-python main.py test
+python main.py animate
 ```
 
-## Saving, loading and overwriting models
 
-Models are saved to runs folder which is generated when training initiates. Inside runs, a new folder with the name of your training run tag will be generated, inside this the model params and training outputs are saved. This includes:
 
-- **config.json** - this json holds the config paramaters of your training run, see config.py for more info
-- **Gen.pt** - this holds the generator training parameters
-- **Disc.pt** - this holds the discriminator parameters
-
-### Training
-
-If training for the first time, these files are created and updated during training.
-
-If you initiate a training run with a tag of a run that already exists you will see the prompt
-
-```
-To overwrite existing model enter 'o', to load existing model enter 'l' or to cancel enter 'c'.
-```
-
-By entering `'o'` you will overwrite the existing models, deleting their saved parameters and config. `l` will load the existing model params and config, and continue training this model. `c` will abort the training run.
-
-### Evaluation
-
-When evaluating a trained model, the params and model config are loaded from files. Models are saved with their training tag, use this tag to evaluate specific models.
-
-## TODO
-
-- [x] Quickstart
-- [x] Saving and loading models
-- [ ] Training outputs
-- [ ] Network architectures
-- [ ] wandb

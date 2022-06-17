@@ -1,0 +1,36 @@
+* {
+	font-size:13px;
+	color:#c1c1c1;
+	font-family:"Helvetica";
+	background:black;
+}
+
+
+QToolBar { 
+    background-color: black;
+    border: none;
+}
+
+QToolButton {
+    background:white;
+    color:black;
+    margin: 5px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 7px;
+    border-radius: 2px;
+    border: 2px;
+
+}
+
+QPushButton {
+    background:white;
+    color:black;
+    margin: 5px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    padding: 7px;
+    border-radius: 2px;
+    border: 2px;
+
+}
