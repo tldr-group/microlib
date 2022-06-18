@@ -73,13 +73,13 @@ conda install -r requirements.txt
 ## Dataset generation
 
 You are now ready to run the repo. We will download images, annotate them, perform inpainting, run slicegan and finally generate some animations.
-
+##
 First, to download images run in import mode. This will create a series of requests to doitpoms. If you get cert errors, go to src/preprocessing/import_data.py and add verify=False to line 18 *at your own risk*.
 
 ```
 python main.py import
 ```
-
+##
 Next, annotate the images by running in preprocess mode. You can skip this step and use our annotations by renaming data/prelabelled_anns.json to data/anns.json. If you quit the gui and rerun, you will automatically continue from where you left off - to restart, just delete anns.json.
 
 ```
@@ -94,19 +94,19 @@ The following are the controls at different stages of the annotation GUI. At any
 4. Click on the different phases to segment. Use A and S to adjust threshold. Press enter to skip and select grayscale.
 5. Voxel size: click on the left of the scalebar, then the right, then enter scale bar size in microns.
 
-
+##
 Now run in inpaint mode. This creates a repo called final_images with all the inpainted images ready for slicegan, as well as any images that didn't need inpainting
 
 ```
 python main.py inpaint
 ```
-
+##
 Run in slicegan mode to train 3D generators. This creates the data/slicegan_runs folder and a subfolder for each run that will contain the generator and discriminator, params, and the animations and 3D volumes generated in the next step.
 
 ```
 python main.py slicegan
 ```
-
+##
 Finally, run in animate mode to generate a 3D volume and animate it slice by slice and rotating. Note that th
 
 ```
