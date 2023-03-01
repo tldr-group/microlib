@@ -4,7 +4,7 @@ A repo for generating the dataset associated with microlib.io.
 
 Website: https://microlib.io/
 
-Paper: ___
+Paper: https://www.nature.com/articles/s41597-022-01744-1
 
 ## Folder structure
 
